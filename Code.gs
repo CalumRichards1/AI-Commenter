@@ -8,6 +8,8 @@ function createBookmarksAndComments() {
   var body = doc.getBody();
   var documentTab = doc.getActiveTab().asDocumentTab();
   
+  // Note that the comments in testString below are from sample data in my test doc. Planning to replace it with an API call.
+
   var testString = `In a quiet corner of the city|||Consider varying the sentence structure to avoid a repetitive rhythm. This phrase is effective but similar patterns appear frequently.  
 As the day wore on, the city slowly began to wind down.|||You might explore a more dynamic transition here to maintain reader engagement.  
 The city that never sleeps had finally succumbed to slumber|||This phrase is evocative but slightly contradictory. Consider clarifying whether the city is always active or if it does indeed rest.  
