@@ -9,17 +9,12 @@ function createBookmarksAndComments() {
   var documentTab = doc.getActiveTab().asDocumentTab();
   
   // Get comments based on document contents and custom instructions.
-  var testString = queryClaude();
+  var testString = cleanClaudeResponse(queryClaude());
   
   // Fallback to a test string if queryClaude returns null or empty.
   if (!testString) {
-    Logger.log("queryClaude returned null or empty string. Using fallback test string.");
-    testString = `In a quiet corner of the city|||Consider varying the sentence structure to avoid a repetitive rhythm. This phrase is effective but similar patterns appear frequently.
-As the day wore on, the city slowly began to wind down.|||You might explore a more dynamic transition here to maintain reader engagement.
-The city that never sleeps had finally succumbed to slumber|||This phrase is evocative but slightly contradictory. Consider clarifying whether the city is always active or if it does indeed rest.
-As the first rays of dawn peeked over the horizon|||This phrase is poetic but repeated later in the piece. Consider rewording to maintain freshness.
-In a hidden speakeasy tucked away behind an unassuming door|||This description is engaging but might benefit from a more unique or sensory detail to differentiate it from the rest of the nightlife descriptions.
-As the night wore on, the city's secrets continued to unfold.|||This sentence builds intrigue, but the paragraph that follows shifts quickly between different settings. Consider linking them more smoothly.`;
+    Logger.log("queryClaude returned null or empty string. Exiting the function.");
+    return;
   }
   
   var locationsAndComments = parseLocationsAndComments(testString);
@@ -128,17 +123,69 @@ function parseLocationsAndComments(inputString) {
 
 function queryClaude() {
   // Define instructions for the output format.
-  const writingInstructions = `Instructions: Please review the preceding document and provide comments on the writing style. Your output should provide comments with respect to sections of the document strictly using the following format, and including nothing else:
-	•	Each entry is on a new line.
-	•	The text to be commented on and the associated comment are separated by |||.
-	•	No extra spaces around the delimiter.
-	•	No blank lines.
+  const writingInstructions = `Instructions: Please review the preceding document and follow these instructions:
+  
+  The ‘In a nutshell’ section should discuss elements of the grant that are covered in the following sections. For each section of the grant page after the ‘In a nutshell’ section, excepting ‘Internal forecasts’, ‘Our process’. “Plans for Follow-up’, ‘GiveWell context’, and ‘Relationship disclosures’ find the accompanying part of the ‘In a nutshell’ and comment there on whether the corresponding section later in the document:
 
-Example:
 
-TextToBeCommentedOn 1|||Comment 1  
-TextToBeCommentedOn 2|||Comment 2  
-TextToBeCommentedOn 3|||Comment 3
+(1) Accurately summarizes the most important aspects of the grant page discussed in the section below
+(2) Does not omit any important considerations
+(3) Does not discuss minor or ancillary aspects of the grant
+
+You should also comment on whether all points discussed in the ‘In a nutshell’ section are covered in more depth and that claims are appropriately cited in the later sections of the page. Comment on any claims in the ‘In a nutshell’ section that aren’t discussed further in the page.
+
+The person to whom you're providing commentary welcomes critical feedback and is interested in making their document as good as it can be.
+
+FORMAT REQUIREMENTS (CRITICAL):
+Your output MUST strictly follow this exact format with no exceptions:
+- Each text/comment pair must be formatted as: TextToBeCommentedOn|||Comment
+- Each pair MUST be separated by EXACTLY ONE newline character (\n)
+- NEVER use consecutive newline characters (\n\n) anywhere in your output
+- Text to be commented on must NOT contain newline characters
+- Do not include any additional text, headers, explanations, or formatting
+- No spaces before or after the ||| delimiter
+
+TEXT SELECTION GUIDELINES:
+- Select the SMALLEST POSSIBLE TEXT SNIPPET that identifies the location for your comment
+- Aim for 3-7 words that uniquely identify the beginning of a sentence or section
+- Never include more than 10 words in your text selection
+- For long sentences, select only the first few words (enough to be unique)
+- Prefer to comment on section titles, sentence beginnings, or key phrases
+- Trust that the reader will understand your comment applies to the full context
+
+EXAMPLES OF GOOD TEXT SELECTIONS:
+✅ In February 2025, GiveWell recommended|||This grant summary is clear and concise.
+✅ Important reservations about this grant|||These reservations are well-articulated.
+✅ The GDG is responsible for|||This accurately describes the organization's role.
+
+EXAMPLES OF BAD TEXT SELECTIONS:
+❌ TOO LONG: In February 2025, GiveWell recommended a $416,292 grant to the World Health Organization's Guidelines Development Group (GDG) to fund evidence reviews and updates of guidelines for two malaria treatments
+❌ TOO SHORT AND NOT UNIQUE ENOUGH: This grant
+❌ TOO SHORT/NOT UNIQUE ENOUGH: The
+
+VALIDATION STEP:
+Before submitting your final response, check your entire output to ensure:
+1. No instance of "\n\n" exists anywhere
+2. Every text/comment pair is properly separated by exactly one "\n"
+3. All text selections are brief (3-10 words) but unique enough to locate
+4. No text selection exceeds 10 words
+
+EXAMPLE OF CORRECT FORMAT:
+TextToBeCommentedOn1|||Comment1
+TextToBeCommentedOn2|||Comment2
+TextToBeCommentedOn3|||Comment3
+
+EXAMPLES OF INCORRECT FORMAT:
+❌ TextToBeCommentedOn1|||Comment1
+
+TextToBeCommentedOn2|||Comment2  [ERROR: Has double newline]
+
+❌ TextToBeCommentedOn1 ||| Comment1  [ERROR: Has spaces around delimiter]
+
+❌ TextToBeCommentedOn1|Comment1  [ERROR: Incorrect delimiter]
+
+❌ TextToBeCommentedOn
+continues on next line|||Comment  [ERROR: Newline in text portion]
 `;
 
   // Get the document contents.
@@ -150,12 +197,12 @@ TextToBeCommentedOn 3|||Comment 3
 
   // Define the API endpoint and your API key for Claude.
   var apiUrl = "https://api.anthropic.com/v1/messages";
-  var apiKey = "CLAUDE-API-KEY";
+  var apiKey = "YOUR_API_KEY_HERE";
 
   // Create the payload for the request.
   var payload = {
     model: "claude-3-7-sonnet-20250219",
-    max_tokens: 1024,
+    max_tokens: 2048,
     messages: [{
       role: "user",
       content: prompt
@@ -199,4 +246,10 @@ TextToBeCommentedOn 3|||Comment 3
     Logger.log("Error querying Claude API: " + error);
     return null;
   }
+}
+
+function cleanClaudeResponse(response) {
+  if (!response) return null;
+  // Replace all instances of double newlines with single newlines
+  return response.replace(/\n\n/g, '\n');
 }
